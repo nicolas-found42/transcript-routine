@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://found42.local/transcript-claude/outbox-schema.json",
+  "title": "Transcript extraction result",
+  "description": "Contract between the Claude routine and drainOutbox() in apps-script/Code.gs. The routine writes one of these to the Drive Outbox folder as tasks-<fileId>.json; the Apps Script reads it and creates the Google Tasks. Bump `version` in both places together if this shape changes.",
+  "type": "object",
+  "required": ["version", "sourceFileId", "sourceFileName", "processedAt", "isTranscript", "tasks", "drafts"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "Schema version. Must match OUTBOX_SCHEMA_VERSION in Code.gs, or the file is quarantined in Failed/ rather than processed against a shape the script doesn't understand.",
+      "const": 1
+    },
+    "sourceFileId": {
+      "description": "Drive file ID of the transcript, from the fire payload.",
+      "type": "string"
+    },
+    "sourceFileName": {
+      "type": "string"
+    },
+    "sourceFileUrl": {
+      "type": "string"
+    },
+    "processedAt": {
+      "description": "When the routine produced this result.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "isTranscript": {
+      "description": "False when the file turned out not to be a meeting transcript. The Apps Script still needs the file to distinguish 'nothing to do' from 'the run failed'.",
+      "type": "boolean"
+    },
+    "skipReason": {
+      "description": "One-line explanation when isTranscript is false; null otherwise.",
+      "type": ["string", "null"]
+    },
+    "summary": {
+      "description": "One-paragraph summary of the meeting.",
+      "type": "string"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title"],
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "description": "Actionable imperative phrase, under ~80 characters. Becomes the Google Task title.",
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "description": "Person responsible, as named in the transcript. Google Tasks has no assignee field, so this is written into the task notes as 'Owner: <name>'. Omitted when unclear.",
+            "type": "string"
+          },
+          "due": {
+            "description": "Deadline as YYYY-MM-DD, only when one was actually stated. Google Tasks stores the date and discards any time component, so this is a due DATE, never a due time.",
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "notes": {
+            "description": "One or two sentences of context, merged into the task notes.",
+            "type": "string"
+          },
+          "sourceQuote": {
+            "description": "Short verbatim phrase the item came from, so the task can be traced back to the transcript.",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "drafts": {
+      "description": "Gmail drafts the routine created. Informational only — the Apps Script logs the count and takes no action, since the drafts already exist in Gmail by the time this file is written.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["subject"],
+        "additionalProperties": false,
+        "properties": {
+          "to": { "type": "string" },
+          "subject": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}
